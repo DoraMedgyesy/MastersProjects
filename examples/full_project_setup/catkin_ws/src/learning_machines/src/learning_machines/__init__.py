@@ -1,3 +1,3 @@
-from .test_actions import run_all_actions
+from .deep_dqn_W2_2 import run_all_actions
 
 __all__ = ("run_all_actions",)
