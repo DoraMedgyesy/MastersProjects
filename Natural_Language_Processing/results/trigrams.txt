@@ -1,0 +1,10 @@
+<s> <s> the | 24
+`` . </s> | 15
+<s> <s> `` | 8
+, the jury | 7
+the jury said | 7
+`` , the | 6
+<s> <s> it | 6
+<s> the jury | 5
+of georgia 's | 4
+said . </s> | 4
