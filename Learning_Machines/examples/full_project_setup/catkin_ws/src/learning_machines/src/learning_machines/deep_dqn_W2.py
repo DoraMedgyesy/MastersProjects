@@ -220,14 +220,6 @@ def compute_reward(rob, irs, action, left, middle, right):
     food_collected = rob.get_nr_food_collected()
     reward += food_collected*5
 
-    #
-    # # Encourage the agent to keep the food in the middle of the screen
-    # if middle > left or middle > right:
-    #     reward += 2
-    #
-    # # or Just maximise the amount of green in the picture from the camera
-    # reward += (middle * 1.5) + left + right
-
     return reward
 
 def compute_reward2(rob, irs, action, left, middle, right, right_count, left_count, action_history):
@@ -282,14 +274,6 @@ def compute_reward2(rob, irs, action, left, middle, right, right_count, left_cou
     food_collected = rob.get_nr_food_collected()
     reward += food_collected*5
 
-    #
-    # # Encourage the agent to keep the food in the middle of the screen
-    # if middle > left or middle > right:
-    #     reward += 2
-    #
-    # # or Just maximise the amount of green in the picture from the camera
-    # reward += (middle * 1.5) + left + right
-
     return reward, left_count, right_count
 
 
@@ -297,23 +281,23 @@ def compute_reward3(rob, irs, action, left, middle, right, right_count, left_cou
     reward = 0
     info = {}
 
-    # --- Update action history ---
+    #Update action history
     action_history.append(action)
     recent_actions = list(action_history)
 
-    # === 1. FOOD COLLECTION ===
+    #1. FOOD COLLECTION
     food_collected = rob.get_nr_food_collected()
     if food_collected:
         reward += 100
         info['food_collected'] = True
         return reward, left_count, right_count  # Early return on major event
 
-    # === 2. FORWARD MOVEMENT REWARD ===
+    #2. FORWARD MOVEMENT REWARD
     if action == "forward":
         reward += 1
         info['forward_bonus'] = 1
 
-    # === 3. VISION-BASED REWARDS ===
+    # 3. VISION-BASED REWARDS
     # Reward centered green more than sides
     if middle > left and middle > right:
         reward += 6
@@ -323,7 +307,7 @@ def compute_reward3(rob, irs, action, left, middle, right, right_count, left_cou
     reward += green_pixel_reward
     info['green_pixel_bonus'] = green_pixel_reward
 
-    # === 4. COLLISION DETECTION ===
+    # 4. COLLISION DETECTION
     collision = any(sensor > COLLISION_THRESHOLD for sensor in irs)
     if collision:
         reward -= 10
@@ -335,7 +319,7 @@ def compute_reward3(rob, irs, action, left, middle, right, right_count, left_cou
             reward -= 2
             info['nonforward_crash_penalty'] = -2
 
-    # === 5. REPETITION PENALTIES ===
+    # 5. REPETITION PENALTIES
     if action == "left":
         left_count += 1
     else:
@@ -360,7 +344,7 @@ def compute_reward3(rob, irs, action, left, middle, right, right_count, left_cou
         reward -= 5
         info['no_turn_penalty'] = -5
 
-    # === 6. Final food collection bonus (not early return) ===
+    #6. Final food collection bonus (not early return)
     reward += food_collected * 5
     info['food_bonus'] = food_collected * 5
 
@@ -395,7 +379,7 @@ def compute_reward4(
                 reward += 10
                 recently_collided = False
 
-    # --- Left turn penalty ---
+    # Left turn penalty
     if action == "left":
         left_count += 1
     else:
@@ -404,7 +388,7 @@ def compute_reward4(
         reward -= 5
         left_count = 0
 
-    # --- Right turn penalty ---
+    #  Right turn penalty
     if action == "right":
         right_count += 1
     else:
@@ -413,11 +397,11 @@ def compute_reward4(
         reward -= 5
         right_count = 0
 
-    # --- No turning penalty ---
+    # No turning penalty
     if len(action_history) == 10 and not any(a in ("left", "right") for a in action_history):
         reward -= 5.0
 
-    # --- Reward collected food ---
+    # Reward collected food
     food_collected = rob.get_nr_food_collected()
     reward += food_collected * 5
 
@@ -486,7 +470,7 @@ def run_all_actions(rob: IRobobo, load_model=None, num_episodes=EPISODES):
             rob.play_simulation()
         
         rob.set_phone_tilt(100, 100)
-        # In evry episode, turn the robot and random to change the initial state.
+        # In every episode, turn the robot and random to change the initial state.
         action = np.random.choice(ACTIONS)
         rob.move_blocking(ACT_TO_MOTOR[action][0], ACT_TO_MOTOR[action][1], 100)
         

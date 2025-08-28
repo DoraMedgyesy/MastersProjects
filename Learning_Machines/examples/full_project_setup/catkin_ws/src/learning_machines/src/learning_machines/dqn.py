@@ -44,13 +44,7 @@ def get_state(rob: IRobobo):
     normalized_irs = [min(ir / 100, 1.0) for ir in irs]
     print(f"Raw IRs: {irs}")
     print(f"Normalized IRs: {normalized_irs}")
-    # Use front sensors for navigation state
-    # Currently the code does not use the back sensors, but they can be added later.
-    # Not sure if the back sensors would anything. The code does have a backward action,
-    # so we might need the other sensors later.
 
-    # [BackL, BackR, FrontL, FrontR, FrontC, FrontRR, BackC, FrontLL]
-    # front_sensors = [2, 3, 4, 5, 7]
     return tuple(round(normalized_irs[i], 2) for i in range(len(normalized_irs)))
 
 
@@ -135,18 +129,7 @@ def compute_reward(rob, prev_position, current_position, irs, action):
         # Collision penalty: check front sensors for obstacles
     # front_sensors = [irs[i] for i in [3, 4, 5, 6, 7]]
     if any(sensor > COLLISION_THRESHOLD for sensor in irs):
-        # I was playing around with the threshold, it seems that 130 is a good value.
-        # print("bitch too close")
         reward -= 5  # Significant penalty for collisions
-
-    # Smoothness reward: penalize sudden changes in direction
-    # if we want to avoid obstacles with only 3-5 actions like we have now,
-    # we cannot afford such a penalty. But ill keep it here for later use.
-    # if abs(dx) > 0 and abs(dy) > 0:
-    #     reward -= 0.5  # Small penalty for diagonal movement
-
-    # # Time penalty: encourage faster completion
-    # reward += 1
 
     return reward
 

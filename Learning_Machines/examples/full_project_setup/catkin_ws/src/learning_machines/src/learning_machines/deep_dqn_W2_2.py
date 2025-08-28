@@ -222,9 +222,7 @@ def _calculate_reward(rob, action, left_green, middle_green, right_green,
     action_to_idx = {"backward": 0, "left": 1, "right": 2, "forward": 3}
     action_idx = action_to_idx.get(action, 3)
 
-    # =================================================================
     # 1. FOOD COLLECTION - Highest Priority
-    # =================================================================
     food_collision_detected = _check_food_collision(rob)
     if food_collision_detected:
         reward += 100  # Dominant reward
@@ -232,17 +230,12 @@ def _calculate_reward(rob, action, left_green, middle_green, right_green,
         print(f"🎉 FOOD COLLECTED! Reward: +100")
         return reward, info  # Early return
 
-    # =================================================================
     # 2. FORWARD MOVEMENT REWARD
-    # =================================================================
     if action == "forward":
         reward += 1  # Simple forward reward
         info['forward_bonus'] = 1
 
-    # =================================================================
     # 3. VISION-BASED REWARDS
-    # =================================================================
-
     # REWARD: Keep food in center section
     if middle_green > left_green and middle_green > right_green:
         center_bonus = 6  # Base bonus for centered food
@@ -256,10 +249,8 @@ def _calculate_reward(rob, action, left_green, middle_green, right_green,
     info['green_pixels_reward'] = green_pixel_reward
     info['green_distribution'] = [left_green, middle_green, right_green]
 
-    # =================================================================
-    # 4. INTELLIGENT COLLISION DETECTION (food vs obstacle)
-    # =================================================================
 
+    # 4. INTELLIGENT COLLISION DETECTION (food vs obstacle)
     # Check if we're colliding with something (convert IR readings to distances)
     # Assuming higher IR values = closer objects (adjust if needed)
     min_distance = min([ir / 1000.0 for ir in ir_values]) if ir_values else 1.0
@@ -284,10 +275,8 @@ def _calculate_reward(rob, action, left_green, middle_green, right_green,
             if action == "forward":
                 reward -= 5  # Extra penalty for pushing forward into obstacles
 
-    # =================================================================
-    # 5. REPETITIVE ACTION PENALTIES (prevent circling/backing)
-    # =================================================================
 
+    # 5. REPETITIVE ACTION PENALTIES (prevent circling/backing)
     action_history.append(action_idx)
 
     # Check for repetitive patterns in recent actions

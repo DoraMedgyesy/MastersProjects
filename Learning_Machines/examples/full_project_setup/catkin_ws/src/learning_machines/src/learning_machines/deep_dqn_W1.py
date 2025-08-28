@@ -45,7 +45,7 @@ class QNetwork(nn.Module):
     def forward(self, x):
         return self.net(x)
 
-# --- Replay buffer ---
+#Replay buffer
 class ReplayBuffer:
     def __init__(self, capacity):
         self.buffer = deque(maxlen=capacity)
@@ -67,7 +67,7 @@ class ReplayBuffer:
     def __len__(self):
         return len(self.buffer)
 
-# --- Utility functions ---
+#Utility functions
 def get_state(rob: IRobobo):
     irs = rob.read_irs()
     return np.array([ir / 1000.0 for ir in irs], dtype=np.float32)  # normalize to [0,1]
@@ -99,29 +99,29 @@ def compute_reward(irs, action_idx, action_history, left_count, right_count, for
     # Add current action to history
     action_history.append(action_idx)
 
-    # --- Collision penalty ---
+    #ollision penalty
     collision = any(sensor > COLLISION_THRESHOLD for sensor in irs)
     if collision:
         reward -= 10.0
 
-    # --- Small forward reward ---
+    #Small forward reward
     if action_idx == 0:  # move_forward
         reward += 1.0  # small incentive
         forward_count += 1
     else:
         forward_count = 0
 
-    # --- Bonus for 4 forward moves in a row ---
+    #Bonus for 4 forward moves in a row
     if forward_count == 4:
         reward += 5.0  # bigger reward for consistency
         forward_count = 0
 
-    # --- No turning penalty (if no left/right in last 10 steps) ---
+    #No turning penalty (if no left/right in last 10 steps)
     if len(action_history) == action_history.maxlen:
         if not any(a in (1, 2, 3, 4) for a in action_history):
             reward -= 5.0
 
-    # --- Left turn streak penalty ---
+    #Left turn streak penalty
     if action_idx in (1, 2):  # big_left, small_left
         left_count += 1
     else:
@@ -130,7 +130,7 @@ def compute_reward(irs, action_idx, action_history, left_count, right_count, for
         reward -= 5.0
         left_count = 0
 
-    # --- Right turn streak penalty ---
+    #Right turn streak penalty
     if action_idx in (3, 4):  # big_right, small_right
         right_count += 1
     else:
@@ -151,7 +151,6 @@ def select_action(policy_net, state, steps_done):
         qvals = policy_net(torch.tensor(state).unsqueeze(0))
     return int(qvals.argmax(dim=1).item())
 
-# --- Exposed function ---
 __all__ = ("run_all_actions", "load_model")
 
 def run_all_actions(rob: IRobobo, num_episodes=EPISODES):
