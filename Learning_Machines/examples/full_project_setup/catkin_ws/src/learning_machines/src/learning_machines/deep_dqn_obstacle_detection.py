@@ -26,10 +26,10 @@ MEMORY_SIZE = 10_000
 TARGET_UPDATE = 10
 
 # Episode parameters
-MAX_STEPS = 500  # maximum steps per episode
-MIN_STEPS = 500  # minimum steps before early stopping
+MAX_STEPS = 5  # maximum steps per episode
+MIN_STEPS = 5  # minimum steps before early stopping
 PATIENCE = 1000  # steps without improvement before early stopping
-EPISODES = 500  # number of episodes to train
+EPISODES = 5  # number of episodes to train
 THRESHOLD = 90  # threshold for collision detection
 
 # ACTIONS = ["forward", "forward_right", "forward_left", "left", "slight_left", "right", "slight_right", "backward"]

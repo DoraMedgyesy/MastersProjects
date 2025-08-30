@@ -28,7 +28,7 @@ The reward function penalizes collisions and repetitive turning, and rewards smo
 **: 8 normalized IR values  
 **Actions**: `["move_forward", "big_left", "small_left", "big_right", "small_right", "backward"]`
 
-During training, the script automatically saves the trained neural network as a `.pth` file in the `/root/results/` directory.  
+During training, the script automatically saves the trained neural network as a `.pth` file in the `/examples/full_project_setup/results/` directory.  
 Saved models follow the format:  
 ```bash
 dqn_model_YYYYMMDD_HHMMSS.pth
