@@ -244,7 +244,7 @@ def run_all_actions(rob: IRobobo, num_episodes=EPISODES):
         'steps_done': steps_done,
         'rewards_history': rewards_history,
     }, model_path)
-    print(f"✅ Model saved to: {model_path}")
+    print(f" Model saved to: {model_path}")
 
     return rewards_history
 
