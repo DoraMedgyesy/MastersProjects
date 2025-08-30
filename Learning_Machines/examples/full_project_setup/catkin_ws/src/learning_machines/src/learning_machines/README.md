@@ -52,6 +52,11 @@ The reward function prioritizes:
 **States**: `[5 IR values] + [2 motor values] + [3 green pixel distribution] = 10 dimensions`  
 **Actions**: `["forward", "left", "right", "backward"]`
 
+During training, the script automatically saves the trained neural network as a `.pth` file in the `/root/results/` directory.  
+Saved models follow the format:  
+```bash
+dqn_model_YYYYMMDD_HHMMSS.pth
+```
 ---
 
 ##  Neural Network Architecture
