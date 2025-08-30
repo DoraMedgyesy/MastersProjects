@@ -16,9 +16,9 @@ from collections import deque
 import torch.nn.functional as F
 
 # Training parameters
-EPSILON = 0.1  # exploration probability
-LR = 0.001    # learning rate
-GAMMA = 0.99    # discount factor
+EPSILON = 1  # exploration probability
+LR = 0.001  # learning rate
+GAMMA = 0.99  # discount factor
 MOVE_WEIGHT = 1.0  # weight for movement speed in reward
 COLLISION_THRESHOLD = 130  # threshold for collision detection
 BATCH_SIZE = 50
@@ -27,38 +27,38 @@ TARGET_UPDATE = 10
 
 # Episode parameters
 MAX_STEPS = 500  # maximum steps per episode
-MIN_STEPS = 500   # minimum steps before early stopping
-PATIENCE = 1000    # steps without improvement before early stopping
-EPISODES = 500   # number of episodes to train
+MIN_STEPS = 500  # minimum steps before early stopping
+PATIENCE = 1000  # steps without improvement before early stopping
+EPISODES = 500  # number of episodes to train
 THRESHOLD = 90  # threshold for collision detection
 
-# TODO: Add a reward for moving forward
 # ACTIONS = ["forward", "forward_right", "forward_left", "left", "slight_left", "right", "slight_right", "backward"]
 ACTIONS = ["forward", "left", "right", "backward"]
 ACT_TO_MOTOR = {
-    "forward": (100, 100), # 1
+    "forward": (100, 100),  # 1
     # "forward_right": (100, 60), # 2
     # "forward_left": (60, 100), # 3
-    "left": (-60, 60), # 4
+    "left": (-60, 60),  # 4
     # "slight_left": (-30, 30), # 5
-    "right": (60, -60), # 6
+    "right": (60, -60),  # 6
     # "slight_right": (30, -30), # 7
-    "backward": (-100, -100) # 8
+    "backward": (-100, -100)  # 8
 }
 NUM_ACTIONS = len(ACTIONS)
 ACTION_TO_IDX = {action: idx for idx, action in enumerate(ACTIONS)}
 
+
 class DQNNetwork(nn.Module):
     """Deep Q-Network architecture"""
-    
+
     def __init__(self, state_size: int, action_size: int, hidden_size: int = 128):
         super(DQNNetwork, self).__init__()
         self.fc1 = nn.Linear(state_size, hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
-        self.fc3 = nn.Linear(hidden_size, hidden_size )
+        self.fc3 = nn.Linear(hidden_size, hidden_size)
         self.fc4 = nn.Linear(hidden_size, action_size)
         # self.dropout = nn.Dropout(0.2)
-    
+
     def forward(self, x):
         x = F.relu(self.fc1(x))
         # x = self.dropout(x)
@@ -68,87 +68,77 @@ class DQNNetwork(nn.Module):
         x = self.fc4(x)  # No activation on output (Q-values can be negative)
         return x
 
+
 class ReplayBuffer:
     def __init__(self, capacity=10000):
         self.buffer = deque(maxlen=capacity)
-    
+
     def push(self, state, action, reward, next_state, done):
         self.buffer.append((state, action, reward, next_state, done))
-    
+
     def sample(self, batch_size):
         return random.sample(self.buffer, batch_size)
-    
+
     def __len__(self):
         return len(self.buffer)
-    
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 def isolate_green(frame):
     # Convert to HSV color space
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    
+
     # Define range for green color
     lower_green = (40, 40, 40)
     upper_green = (80, 255, 255)
-    
+
     # Create mask for green color
     green_mask = cv2.inRange(hsv, lower_green, upper_green)
-    
+
     # Apply mask to original image
     result = cv2.bitwise_and(frame, frame, mask=green_mask)
     return result, green_mask
 
+
 def analyze_sections(green_mask):
     height, width = green_mask.shape
     section_width = width // 3
-    
+
     # Split into three sections
     left_section = green_mask[:, :section_width]
-    middle_section = green_mask[:, section_width:2*section_width]
-    right_section = green_mask[:, 2*section_width:]
-    
+    middle_section = green_mask[:, section_width:2 * section_width]
+    right_section = green_mask[:, 2 * section_width:]
+
     # Calculate percentage of green pixels in each section
     def get_green_percentage(section):
         total_pixels = section.size
         green_pixels = np.count_nonzero(section)
         return (green_pixels / total_pixels) * 100
-    
+
     left_percent = get_green_percentage(left_section)
     middle_percent = get_green_percentage(middle_section)
     right_percent = get_green_percentage(right_section)
-    
+
     return left_percent, middle_percent, right_percent
 
+
 def get_state(rob: IRobobo, action, img):
-    """Get the current state of the Robobo simulation based on ONLY IR sensor readings.
-    Args:
-        rob: The Robobo instance (either SimulationRobobo or HardwareRobobo)
-    Returns:
-        A tuple representing the normalized IR sensor readings used as the state.
-        
-    After checking a bit, we don't even use this bitch (during the simulation). We might in the future tho, so I'll leave it here.    
-    For now it will return the same irs reading as we use in the simulation. This should improve behaviour.
-    """
+    """Get the current state of the Robobo simulation based on ONLY IR sensor readings."""
     readings = rob.read_irs()
-    state = [ir_reading for idx, ir_reading in enumerate(readings) if idx in [2,3,4,5,7]]
-    # print(state)
+    state = [ir_reading for idx, ir_reading in enumerate(readings) if idx in [2, 3, 4, 5, 7]]
 
     state.extend(list(ACT_TO_MOTOR[action]))
-    # print(state)
     state.extend(img)
     return torch.FloatTensor(state)
 
 
 def perform_action(rob, action):
-    """Perform the given action on the Robobo instance.
-    Args:
-        rob: The Robobo instance (either SimulationRobobo or HardwareRobobo)
-        action: The action to perform, one of the predefined ACTIONS.
-    """
+    """Perform the given action on the Robobo instance."""
     actl, actr = ACT_TO_MOTOR[action]
     rob.move_blocking(actl, actr, 100)
+
 
 def choose_action(state, policy_net, epsilon=EPSILON):
     """Choose an action using epsilon-greedy policy."""
@@ -158,254 +148,165 @@ def choose_action(state, policy_net, epsilon=EPSILON):
         q_values = policy_net(state)
         return ACTIONS[q_values.argmax().item()]
 
+
 def optimize_model(policy_net, target_net, optimizer, memory):
     """Perform a single step of optimization."""
     if len(memory) < BATCH_SIZE:
         return
-    
+
     transitions = memory.sample(BATCH_SIZE)
     batch = list(zip(*transitions))
-    
+
     state_batch = torch.stack(batch[0])
     action_batch = torch.tensor([ACTION_TO_IDX[a] for a in batch[1]], device=device)
     reward_batch = torch.tensor(batch[2], device=device)
     next_state_batch = torch.stack(batch[3])
     done_batch = torch.tensor(batch[4], device=device)
-    
+
     # Compute Q(s_t, a)
     state_action_values = policy_net(state_batch).gather(1, action_batch.unsqueeze(1))
-    
+
     # Compute V(s_{t+1}) for all next states
     with torch.no_grad():
         next_state_values = target_net(next_state_batch).max(1)[0]
         next_state_values[done_batch] = 0.0
-    
+
     # Compute expected Q values
     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
-    
+
     # Compute Huber loss
     loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
-    
+
     # Optimize the model
     optimizer.zero_grad()
     loss.backward()
     torch.nn.utils.clip_grad_norm_(policy_net.parameters(), 100)
     optimizer.step()
-    
+
     return loss.item()
 
-def compute_reward(rob, irs, action, left, middle, right):
-    """Compute the reward based on the Robobo's movement and sensor readings.
-    Args:
-        rob: The Robobo instance (either SimulationRobobo or HardwareRobobo)
-        irs: The IR sensor readings from the Robobo.
-    Returns:
-        A float representing the computed reward.
+
+def _check_food_collision(rob):
+    """Check if robot has collected food"""
+    try:
+        current_food = rob.get_nr_food_collected()
+        if not hasattr(_check_food_collision, 'prev_food'):
+            _check_food_collision.prev_food = 0
+
+        food_collected = current_food > _check_food_collision.prev_food
+        _check_food_collision.prev_food = current_food
+        return food_collected
+    except:
+        return False
+
+
+def _is_colliding_with_food(camera_frame, left_green, middle_green, right_green):
+    """Determine if collision is with food based on green pixels"""
+    if camera_frame is None:
+        return False
+
+    # If we see significant green pixels, we're likely near/colliding with food
+    total_green = left_green + middle_green + right_green
+    return total_green > 10  # Threshold for food collision detection
+
+
+def _calculate_reward(rob, action, left_green, middle_green, right_green,
+                      action_history, ir_values):
     """
-    reward = 0
-
-    food = middle+left+right
-    if food > 5:
-        reward += 1
-
-    else:
-        collision = any(sensor > COLLISION_THRESHOLD for sensor in irs)
-        if collision:
-            reward -= 10.0
-
-
-    if action == "forward":
-        reward += 2
-
-    food_collected = rob.get_nr_food_collected()
-    reward += food_collected*5
-
-    return reward
-
-def compute_reward2(rob, irs, action, left, middle, right, right_count, left_count, action_history):
-    """Compute the reward based on the Robobo's movement and sensor readings.
-    Args:
-        rob: The Robobo instance (either SimulationRobobo or HardwareRobobo)
-        irs: The IR sensor readings from the Robobo.
-    Returns:
-        A float representing the computed reward.
+    Advanced reward function based on the provided implementation
     """
-    reward = 0
-    action_history.append(action)
-
-    food = middle+left+right
-    if food > 5:
-        reward += 1
-
-    else:
-        collision = any(sensor > COLLISION_THRESHOLD for sensor in irs)
-        if collision:
-            reward -= 10.0
-            if action == "forward":
-                reward -= 3.0  # discourage pushing into wall
-        else:
-            if action == "forward":
-                reward += 2
-
-
-    if action == "left":
-        left_count += 1
-    else:
-        left_count = 0
-
-    if left_count == 4:
-        reward -= 5
-        left_count = 0  # reset after penalty
-
-        # Track right streak
-    if action == "right":
-        right_count += 1
-    else:
-        right_count = 0
-
-    if right_count == 4:
-        reward -= 5
-        right_count = 0  # reset after penalty
-
-    if len(action_history) == 10:
-        if not any(a in ("left", "right") for a in action_history):
-            reward -= 5.0
-
-    food_collected = rob.get_nr_food_collected()
-    reward += food_collected*5
-
-    return reward, left_count, right_count
-
-
-def compute_reward3(rob, irs, action, left, middle, right, right_count, left_count, action_history):
-    reward = 0
+    reward = 0.0
     info = {}
 
-    #Update action history
-    action_history.append(action)
-    recent_actions = list(action_history)
+    # Convert action string to index for consistency
+    action_to_idx = {"backward": 0, "left": 1, "right": 2, "forward": 3}
+    action_idx = action_to_idx.get(action, 3)
 
-    #1. FOOD COLLECTION
-    food_collected = rob.get_nr_food_collected()
-    if food_collected:
-        reward += 100
+    # 1. FOOD COLLECTION - Highest Priority
+    food_collision_detected = _check_food_collision(rob)
+    if food_collision_detected:
+        reward += 100  # Dominant reward
         info['food_collected'] = True
-        return reward, left_count, right_count  # Early return on major event
+        print(f"🎉 FOOD COLLECTED! Reward: +100")
+        return reward, info  # Early return
 
-    #2. FORWARD MOVEMENT REWARD
+    # 2. FORWARD MOVEMENT REWARD
     if action == "forward":
-        reward += 1
+        reward += 1  # Simple forward reward
         info['forward_bonus'] = 1
 
     # 3. VISION-BASED REWARDS
-    # Reward centered green more than sides
-    if middle > left and middle > right:
-        reward += 6
-        info['center_bonus'] = 6
+    # REWARD: Keep food in center section
+    if middle_green > left_green and middle_green > right_green:
+        center_bonus = 6  # Base bonus for centered food
+        reward += center_bonus
+        info['center_bonus'] = center_bonus
+        info['green_centering'] = 'centered'
 
-    green_pixel_reward = (middle * 1.5) + left + right
+    # REWARD: Maximize green pixels (core CV_DQN.py formula)
+    green_pixel_reward = (middle_green * 1.5) + left_green + right_green
     reward += green_pixel_reward
-    info['green_pixel_bonus'] = green_pixel_reward
+    info['green_pixels_reward'] = green_pixel_reward
+    info['green_distribution'] = [left_green, middle_green, right_green]
 
-    # 4. COLLISION DETECTION
-    collision = any(sensor > COLLISION_THRESHOLD for sensor in irs)
-    if collision:
-        reward -= 10
-        info['collision_penalty'] = -10
-        if action == "forward":
-            reward -= 5
-            info['forward_crash_penalty'] = -5
+
+    # 4. INTELLIGENT COLLISION DETECTION (food vs obstacle)
+    # Check if we're colliding with something (convert IR readings to distances)
+    # Assuming higher IR values = closer objects (adjust if needed)
+    min_distance = min([ir / 1000.0 for ir in ir_values]) if ir_values else 1.0
+    collision_detected = any(sensor > COLLISION_THRESHOLD for sensor in ir_values)
+
+    if collision_detected:
+        # Determine if it's food or obstacle collision
+        is_food_collision = _is_colliding_with_food(None, left_green, middle_green, right_green)
+
+        if is_food_collision:
+            # Colliding with food = good! (but food collection reward handles this)
+            info['food_collision'] = True
+            info['collision_type'] = 'food'
         else:
-            reward -= 2
-            info['nonforward_crash_penalty'] = -2
+            # Colliding with obstacle = bad
+            reward -= 10  # Penalty for obstacle collision
+            info['obstacle_collision'] = True
+            info['collision_penalty'] = -10
+            info['collision_type'] = 'obstacle'
 
-    # 5. REPETITION PENALTIES
-    if action == "left":
-        left_count += 1
-    else:
-        left_count = 0
-
-    if left_count >= 4:
-        reward -= 5
-        info['left_streak_penalty'] = -5
-        left_count = 0
-
-    if action == "right":
-        right_count += 1
-    else:
-        right_count = 0
-
-    if right_count >= 4:
-        reward -= 5
-        info['right_streak_penalty'] = -5
-        right_count = 0
-
-    if len(recent_actions) == 10 and not any(a in ["left", "right"] for a in recent_actions):
-        reward -= 5
-        info['no_turn_penalty'] = -5
-
-    #6. Final food collection bonus (not early return)
-    reward += food_collected * 5
-    info['food_bonus'] = food_collected * 5
-
-    return reward, left_count, right_count
-
-def compute_reward4(
-    rob, irs, action, left, middle, right,
-    right_count, left_count, action_history,
-    recently_collided, prev_action
-):
-    """Compute reward including collision escape behavior."""
-    reward = 0
-    action_history.append(action)
-
-    # Detect green (food) presence
-    food = middle + left + right
-    if food > 5:
-        reward += 1
-    else:
-        collision = any(sensor > COLLISION_THRESHOLD for sensor in irs)
-        if collision:
-            reward -= 10.0
-            recently_collided = True  # mark that we collided
+            # Additional penalties for pushing into walls
             if action == "forward":
-                reward -= 3.0  # discourage pushing into wall
-        else:
-            if action == "forward":
-                reward += 2
+                reward -= 5  # Extra penalty for pushing forward into obstacles
 
-            # Reward escape after a collision
-            if recently_collided and prev_action == "backward" and action in ("left", "right"):
-                reward += 10
-                recently_collided = False
 
-    # Left turn penalty
-    if action == "left":
-        left_count += 1
-    else:
-        left_count = 0
-    if left_count == 4:
-        reward -= 5
-        left_count = 0
+    # 5. REPETITIVE ACTION PENALTIES (prevent circling/backing)
+    action_history.append(action_idx)
 
-    #  Right turn penalty
-    if action == "right":
-        right_count += 1
-    else:
-        right_count = 0
-    if right_count == 4:
-        reward -= 5
-        right_count = 0
+    # Check for repetitive patterns in recent actions
+    if len(action_history) >= 4:
+        recent_actions = list(action_history)[-4:]  # Last 4 actions
 
-    # No turning penalty
-    if len(action_history) == 10 and not any(a in ("left", "right") for a in action_history):
-        reward -= 5.0
+        # Count occurrences of current action in recent history
+        current_action_count = recent_actions.count(action_idx)
 
-    # Reward collected food
-    food_collected = rob.get_nr_food_collected()
-    reward += food_collected * 5
+        # Penalize continuous backward movement (3+ in last 4)
+        if action_idx == 0 and current_action_count >= 3:  # backward
+            backward_penalty = 10
+            reward -= backward_penalty
+            info['backward_spam_penalty'] = -backward_penalty
+            print(f"🔄 BACKWARD SPAM: -{backward_penalty}")
 
-    return reward, left_count, right_count, recently_collided
+        # Penalize continuous turning (3+ same turns in last 4)
+        elif action_idx in [1, 2] and current_action_count >= 3:  # left, right
+            turn_penalty = 5
+            reward -= turn_penalty
+            info['turn_spam_penalty'] = -turn_penalty
+            print(f"🔄 TURN SPAM: -{turn_penalty}")
+
+    # Store state info
+    info['ir_sensors'] = ir_values
+    info['action_taken'] = action_idx
+    info['min_distance'] = min_distance
+
+    return reward, info
+
 
 def save_model(model, filename=None):
     """Save the PyTorch model (always as dqn_model_{timestamp}.pth)."""
@@ -417,8 +318,9 @@ def save_model(model, filename=None):
     model_path = os.path.join(save_dir, filename)
 
     torch.save(model.state_dict(), model_path)
-    print(f"✅ Model saved to: {model_path}")
+    print(f" Model saved to: {model_path}")
     return model_path
+
 
 def load_model(model, filename):
     """Load a PyTorch model."""
@@ -427,74 +329,68 @@ def load_model(model, filename):
     print(f"Model loaded from {filepath}")
     return model
 
-def get_input_size(rob:IRobobo):
-    """
-    I just made this function to make it more mainstream. So if we change it we can add it here.
-    """
+
+def get_input_size(rob: IRobobo):
+    """Get the input size for the neural network."""
     irs = rob.read_irs()
-    ir_state : int= len([ir_reading for idx, ir_reading in enumerate(irs) if idx in [2,3,4,5,7]])
-    num_obs = ir_state + 3 + 2 # 3 from the images and 2 from the action
+    ir_state = len([ir_reading for idx, ir_reading in enumerate(irs) if idx in [2, 3, 4, 5, 7]])
+    num_obs = ir_state + 3 + 2  # 3 from the images and 2 from the action
     return 10
 
-def run_all_actions(rob: IRobobo, load_model=None, num_episodes=EPISODES):
+
+def run_all_actions(rob: IRobobo, load_model_path=None, num_episodes=EPISODES):
     """Run the DQN algorithm on the Robobo."""
     if isinstance(rob, SimulationRobobo):
         rob.play_simulation()
-    # forward_streak = 0
 
     print("Training DQN Agent...")
-    
+
     # Get input size after simulation is started
-    input_size = get_input_size(rob) # update according to the new observations
+    input_size = get_input_size(rob)
     print(f"Input size: {input_size}, Action size: {NUM_ACTIONS}")
 
     policy_net = DQNNetwork(state_size=input_size, action_size=NUM_ACTIONS).to(device)
     target_net = DQNNetwork(state_size=input_size, action_size=NUM_ACTIONS).to(device)
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
-    
+
     optimizer = optim.Adam(policy_net.parameters(), lr=LR)
     memory = ReplayBuffer(MEMORY_SIZE)
-    
-    if load_model:
-        policy_net = load_model(policy_net, load_model)
+
+    if load_model_path:
+        policy_net = load_model(policy_net, load_model_path)
         target_net.load_state_dict(policy_net.state_dict())
-    
+
     best_episode_reward = float('-inf')
     episode_rewards = []
-    
+
     for episode in range(num_episodes):
         print(f"\nStarting Episode {episode + 1}/{num_episodes}")
-        
+
         if isinstance(rob, SimulationRobobo):
             rob.play_simulation()
-        
+
         rob.set_phone_tilt(100, 100)
-        # In every episode, turn the robot and random to change the initial state.
+
+        # Random initial action
         action = np.random.choice(ACTIONS)
         rob.move_blocking(ACT_TO_MOTOR[action][0], ACT_TO_MOTOR[action][1], 100)
-        
+
         frame = rob.read_image_front()
         green_only, green_mask = isolate_green(frame)
         left, middle, right = analyze_sections(green_mask)
-        
+
         state = get_state(rob, action, [left, middle, right])
         episode_reward = 0
         steps_without_progress = 0
         last_best_reward = float('-inf')
 
+        # Episode state tracking
         action_history = deque(maxlen=10)
-        left_count = 0
-        right_count = 0
-        prev_action = None
-        recently_collided = False
-        
+
         for step in range(MAX_STEPS):
-            start_position = rob.get_position()
             action = choose_action(state, policy_net)
-            # print(action)
             perform_action(rob, action)
-            
 
             frame = rob.read_image_front()
             green_only, green_mask = isolate_green(frame)
@@ -503,48 +399,58 @@ def run_all_actions(rob: IRobobo, load_model=None, num_episodes=EPISODES):
             next_state = get_state(rob, action, [left, middle, right])
 
             irs = rob.read_irs()
-            # reward, left_count, right_count = compute_reward2(rob, [ir_reading for idx, ir_reading in enumerate(irs) if idx in [2, 3, 4, 5, 7]],
-            #                                                   action, left, middle, right, left_count, right_count, action_history)
-            reward, left_count, right_count, recently_collided = compute_reward4(rob, [ir_reading for idx, ir_reading in enumerate(irs) if idx in [2, 3, 4, 5, 7]],
-                                                              action, left, middle, right, left_count, right_count, action_history, recently_collided, prev_action)
+            selected_irs = [ir_reading for idx, ir_reading in enumerate(irs) if idx in [2, 3, 4, 5, 7]]
+
+            # Use the new advanced reward function
+            reward, reward_info = _calculate_reward(
+                rob, action, left, middle, right,
+                action_history, selected_irs
+            )
 
             done = step == MAX_STEPS - 1
-            
+
             memory.push(state, action, reward, next_state, done)
             state = next_state
-            
+
             loss = optimize_model(policy_net, target_net, optimizer, memory)
-            
+
             episode_reward += reward
-            
+
             if step % TARGET_UPDATE == 0:
                 target_net.load_state_dict(policy_net.state_dict())
-            
+
             if episode_reward > last_best_reward:
                 last_best_reward = episode_reward
                 steps_without_progress = 0
             else:
                 steps_without_progress += 1
-            
+
             if steps_without_progress > PATIENCE and step >= MIN_STEPS:
                 print(f"Early stopping at step {step} due to lack of progress")
                 break
-            
-            if step % 1 == 0:
-                print(f"Step {step}: Action {action}, Reward {reward:.2f}, Total Reward {episode_reward:.2f}")
-        
+
+            if step % 50 == 0:  # Reduced logging frequency
+                collision_type = reward_info.get('collision_type', 'none')
+                food_status = "FOOD!" if reward_info.get('food_collected', False) else "searching"
+                print(
+                    f"Step {step}: Action {action}, Reward {reward:.2f}, Total {episode_reward:.2f}, Status: {food_status}, Collision: {collision_type}")
+
+                # Print detailed reward breakdown occasionally
+                if step % 200 == 0 and reward_info:
+                    print(f"  Reward breakdown: {reward_info}")
+
         if isinstance(rob, SimulationRobobo):
             rob.stop_simulation()
-        
+
         episode_rewards.append(episode_reward)
-        
+
         if episode_reward > best_episode_reward:
             best_episode_reward = episode_reward
             save_model(policy_net)
             print(f"New best model saved with reward: {best_episode_reward:.2f}")
-        
+
         print(f"Episode {episode + 1} completed with reward: {episode_reward:.2f}")
-    
+
     save_model(policy_net, "final_model.pth")
     print("\nTraining Summary:")
     print(f"Best episode reward: {best_episode_reward:.2f}")

@@ -23,3 +23,16 @@ After you have built, it is important to go through the READMEs in the examples,
 If you change anything with the docker setup or run scripts it is important to test everything under Linux (X11), Windows, and MacOS before pushing to master, making sure the behaviour is consistent.
 
 If you changed the Lua scripts, make sure to update all affected models and scenes to match. This is quite tedious, and if you find a way to automate it, please let me know.
+
+## My Project: Deep Q-Learning for Robobo
+
+As part of this course, I implemented a Deep Q-Learning system for Robobo. You can find the code and documentation here:
+
+examples/full_project_setup/catkin_ws/src/learning_machines/src/learning_machines/README.md
+
+This includes:
+- A DQN agent for Obstacle Avoidance (IR-based)
+- A DQN agent for Green Object Tracking (vision-based)
+- Training scripts that save models to .pth files
+- A test script that can load any saved model
+- A short paper summarizing the project (Robobo_DQN_Project_Report.pdf, at the root)

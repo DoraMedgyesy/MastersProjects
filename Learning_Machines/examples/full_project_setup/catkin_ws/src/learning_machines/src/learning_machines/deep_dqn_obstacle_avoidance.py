@@ -141,8 +141,6 @@ def compute_reward(irs, action_idx, action_history, left_count, right_count, for
 
     return reward, left_count, right_count, forward_count
 
-
-
 def select_action(policy_net, state, steps_done):
     eps = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * steps_done / EPS_DECAY)
     if random.random() < eps:
