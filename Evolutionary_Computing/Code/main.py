@@ -26,4 +26,7 @@ def find_best_run(selection, enemy):
 enemies = [3, 5, 8]
 
 # train('Ranked')
+train('Elitism')
 # test('Elitism')
+# test('Ranked')
+

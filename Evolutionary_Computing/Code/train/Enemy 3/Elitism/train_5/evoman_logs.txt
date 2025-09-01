@@ -48,8 +48,6 @@ save logs: yes
 
 ########## Simulation state - END ###########
 
-PARAMETER CHANGE: speed = normal
-
 PARAMETER CHANGE: enemies = [3]
 
 PARAMETER CHANGE: timeexpire = 3000

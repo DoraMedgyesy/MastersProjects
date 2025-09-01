@@ -48,43 +48,43 @@ save logs: yes
 
 ########## Simulation state - END ###########
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: enemies = [3]
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: timeexpire = 3000
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: level = 2
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: enemyn = 3
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: overturetime = 100
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: playermode = ai
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: enemymode = static
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: contacthurt = player
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: clockprec = low
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: inputscoded = no
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: randomini = yes
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: multiplemode = no
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: speed = fastest
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: loadplayer = yes
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: loadenemy = yes
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: sound = off
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: logs = on
 
-MESSAGE: state has been saved to files.
+PARAMETER CHANGE: savelogs = yes
 
-MESSAGE: state has been saved to files.
+MESSAGE: state has been loaded.
 
 ########## Simulation state - INI ###########
 

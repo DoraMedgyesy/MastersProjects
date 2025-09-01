@@ -36,3 +36,6 @@ gen best mean std
 
 gen best mean std
 19 -0.121065 -0.236459 0.112226
+
+gen best mean std
+19 -0.121065 -0.236459 0.112226

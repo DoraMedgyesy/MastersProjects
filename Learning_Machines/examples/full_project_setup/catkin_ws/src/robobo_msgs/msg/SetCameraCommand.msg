@@ -1,6 +1,0 @@
-# Commands the robot to change the camera 
-#
-# Identifier of the camera to use:
-# 0 for front camera
-# 1 for back cameras
-std_msgs/Int8 camera   
